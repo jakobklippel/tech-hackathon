@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.731.1",
     "apify-client": "^2.11.1"
   }
 }
