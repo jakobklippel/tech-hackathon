@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { OpenAI } from 'openai';
 import { ConfigService } from "@nestjs/config";
 import {GithubService} from "../github/github.service";
+import {ApifyClientService} from "../apify-client/apify-client.service";
+import {OnEvent} from "@nestjs/event-emitter";
 
 @Injectable()
 export class AgentClientService {
@@ -12,6 +14,7 @@ export class AgentClientService {
     constructor(
         private readonly configService: ConfigService,
         private readonly githubService: GithubService,
+        private readonly apifyClientService: ApifyClientService,
     ) {
         const token = this.configService.get<string>('OPENAI_KEY');
         this.client = new OpenAI({
@@ -19,6 +22,28 @@ export class AgentClientService {
             apiKey: token,
         });
     }
+
+    // todo: fine tune the main prompt:
+    systemPrompt = `Your task is to:
+1. find out whether this project uses OpenAI
+2. create a short, concise summary of the loom video
+
+Respond using this markup template:
+\`\`\`md
+# Review
+
+## Does it use OpenAI?
+answer with yes or no. Do not add anything else
+
+## Video summary
+the summary of the video
+
+## Closing Remarks
+anything you would like to add
+\`\`\`
+
+Use function calls to get the required information.
+`;
 
     async generateText(emailContent: string): Promise<string> {
 
@@ -30,7 +55,7 @@ export class AgentClientService {
             }
 
             const messages = [
-                { role: 'system', content: `Your task is to find out whether this project uses OpenAI. Use function calls to get the required information. ` },
+                { role: 'system', content: this.systemPrompt },
                 { role: 'user', content: emailContent },
                 ...this.context,
             ];
@@ -75,7 +100,23 @@ export class AgentClientService {
                             "required": ["github_url", "file_path"],
                         },
                     },
-                },],
+                },{
+                    "type": "function",
+                    "function": {
+                        "name": "retrieve_loom_video_transcript",
+                        "description": "Get the transcript of a loom video",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "loom_video_url": {
+                                    "type": "string",
+                                    "description": "The url of the loom video.",
+                                },
+                            },
+                            "required": ["loom_video_url"],
+                        },
+                    },
+                }],
                 // model: "mistral-tiny",
                 model: "gpt-4o",
             });
@@ -85,10 +126,10 @@ export class AgentClientService {
             const toolCall = chatCompletion.choices[0].message.tool_calls?.[0];
 
             if (toolCall) {
-                const id = toolCall.id;
                 const functionName = toolCall.function.name;
                 const args = JSON.parse(toolCall.function.arguments);
 
+                console.log(functionName);
                 switch (functionName) {
                     case 'retrieve_github_repo_file_structure':
                         const {owner, repo} = this.githubService.extractOwnerAndProject(args['github_url'])
@@ -116,6 +157,17 @@ export class AgentClientService {
                         }
 
                         break;
+                    case 'retrieve_loom_video_transcript':
+                        const loomUrl = args['loom_video_url'];
+                        const transcript = await this.apifyClientService.fetchLoomTranscript(loomUrl);
+
+                        this.context.push(
+                            {
+                                role: 'user',
+                                content: `This is the video transcript:\n\`\`\`${transcript}\`\`\``,
+                            }
+                        );
+                        break;
                 }
             } else {
                 return chatCompletion.choices[0].message.content;
@@ -123,5 +175,13 @@ export class AgentClientService {
         }
 
         return 'what?'
+    }
+
+    @OnEvent('email.received')
+    async handleUserCreatedEvent(event: { from: string; subject: string; body: string; }) {
+        const result = await this.generateText(event.body);
+        console.log(result);
+
+        // todo: send the result to frontend
     }
 }

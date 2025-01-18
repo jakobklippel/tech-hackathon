@@ -1,12 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as Imap from 'imap-simple';
 import {ConfigService} from "@nestjs/config";
+import {EventEmitter2} from "@nestjs/event-emitter";
+import {Cron, CronExpression} from "@nestjs/schedule";
 
 @Injectable()
 export class EmailCronService {
     private readonly logger = new Logger(EmailCronService.name);
 
-    constructor(private configService: ConfigService) {}
+    constructor(
+        private configService: ConfigService,
+        private readonly eventEmitter: EventEmitter2
+    ) {}
 
     private imapConfig = {
         imap: {
@@ -21,7 +26,18 @@ export class EmailCronService {
         },
     };
 
-    // @Cron(CronExpression.EVERY_10_SECONDS)
+    extractPlainText(email: string) {
+        const parts = email.split('Content-Type:');
+        for (const part of parts) {
+            if (part.trim().startsWith('text/plain')) {
+                return part;
+            }
+        }
+
+        return email;
+    }
+
+    @Cron(CronExpression.EVERY_10_SECONDS)
     async fetchEmails() {
         try {
 
@@ -69,6 +85,12 @@ export class EmailCronService {
                         this.logger.log('Successfully expunged deleted emails');
                     }
                 });
+
+                // extract plain text part
+                const plainText = this.extractPlainText(body);
+
+                // emit
+                this.eventEmitter.emit('email.received', { from, subject, body: plainText });
             }
 
             connection.end();
