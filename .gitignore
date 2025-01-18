@@ -1,2 +1,3 @@
 .idea
 backend/jerry-service/.env
+node_modules
