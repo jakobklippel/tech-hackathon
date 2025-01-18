@@ -60,4 +60,37 @@ export class GithubService {
 
         return structure; //this.reformatFolderStructure(structure);
     }
+
+    async pushFile(
+        filePath: string,
+        content: string,
+        commitMessage: string,
+    ): Promise<any> {
+        const githubToken = this.configService.get<string>('GITHUB_TOKEN');
+        if (!githubToken) {
+            throw new Error('GitHub token is not configured');
+        }
+
+        const encodedContent = Buffer.from(content).toString('base64');
+
+        const url = `${this.baseUrl}/repos/jakobklippel/tech-hackathon-results/contents/${filePath}`;
+
+        const response = await this.httpService
+            .put(
+                url,
+                {
+                    message: commitMessage,
+                    content: encodedContent,
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${githubToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                },
+            )
+            .toPromise();
+
+        return response.data;
+    }
 }

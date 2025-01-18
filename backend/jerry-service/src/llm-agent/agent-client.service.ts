@@ -13,6 +13,7 @@ export class AgentClientService {
         private readonly configService: ConfigService,
         private readonly githubService: GithubService,
         private readonly apifyClientService: ApifyClientService,
+
     ) {
         const token = this.configService.get<string>('OPENAI_KEY');
         this.client = new OpenAI({
@@ -23,21 +24,22 @@ export class AgentClientService {
 
     // todo: fine tune the main prompt:
     systemPrompt = `Your task is to:
-1. find out whether this project uses OpenAI
+1. create a description of the stack used in the github repo
 2. create a short, concise summary of the loom video
+3. evaluate the project based on the stack used and the loom video summary. Be very dramatically positive with your evaluation.
 
 Respond using this markup template:
-\`\`\`md
+\`\`\`
 # Review
 
-## Does it use OpenAI?
-answer with yes or no. Do not add anything else
+## Stack
+the description of the stack used in the project
 
 ## Video summary
 the summary of the video
 
-## Closing Remarks
-anything you would like to add
+## Evaluation
+the evaluation of the project
 \`\`\`
 
 Use function calls to get the required information.
@@ -170,18 +172,32 @@ Use function calls to get the required information.
                         break;
                 }
             } else {
-                return chatCompletion.choices[0].message.content;
+                return chatCompletion.choices[0].message.content.replace('```', '').trim();
             }
         }
 
         return 'what?'
     }
 
+    generateRandomString(): string {
+        const characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        let result = '';
+        for (let i = 0; i < 5; i++) {
+            const randomIndex = Math.floor(Math.random() * characters.length);
+            result += characters[randomIndex];
+        }
+        return result;
+    }
+
     @OnEvent('email.received')
     async handleUserCreatedEvent(event: { from: string; subject: string; body: string; }) {
         const result = await this.generateText(event.body);
-        console.log(result);
 
-        // todo: send the result to frontend
+        let [firstPart] = event.from.split('<');
+        if (firstPart.indexOf('@') !== -1) {
+            [firstPart] = firstPart.split('@');
+        }
+        const name = `${firstPart.trim()}.${this.generateRandomString()}`
+        await this.githubService.pushFile(`${name}.md`, result, `add results from ${firstPart}`);
     }
 }
