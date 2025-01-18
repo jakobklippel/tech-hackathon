@@ -3,6 +3,7 @@ import { EmailClientModule } from './email-client/email-client.module';
 import { GithubModule } from './github/github.module';
 import {ConfigModule} from "@nestjs/config";
 import {AgentClientModule} from "./agent-client/agent-client.module";
+import {ApifyClientModule} from "./apify-client/apify-client.module";
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import {AgentClientModule} from "./agent-client/agent-client.module";
     EmailClientModule,
     GithubModule,
     AgentClientModule,
+    ApifyClientModule,
   ],
   controllers: [],
   providers: [],
