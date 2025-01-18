@@ -9,8 +9,6 @@ import {OnEvent} from "@nestjs/event-emitter";
 export class AgentClientService {
     private readonly client: OpenAI;
 
-    context: any[] = [];
-
     constructor(
         private readonly configService: ConfigService,
         private readonly githubService: GithubService,
@@ -47,6 +45,8 @@ Use function calls to get the required information.
 
     async generateText(emailContent: string): Promise<string> {
 
+        const context: any[] = [];
+
         let i=0;
         while (true) {
             i++;
@@ -57,7 +57,7 @@ Use function calls to get the required information.
             const messages = [
                 { role: 'system', content: this.systemPrompt },
                 { role: 'user', content: emailContent },
-                ...this.context,
+                ...context,
             ];
 
             console.log(messages);
@@ -135,7 +135,7 @@ Use function calls to get the required information.
                         const {owner, repo} = this.githubService.extractOwnerAndProject(args['github_url'])
                         const githubStructure = await this.githubService.getRepoFileStructure(owner, repo);
 
-                        this.context.push(
+                        context.push(
                             {
                                 role: 'user',
                                 content: `Github repo structure of ${args['github_url']}\n\`\`\`${JSON.stringify(githubStructure)}\`\`\``,
@@ -148,7 +148,7 @@ Use function calls to get the required information.
 
                         if (fileContent?.content) {
                             const decodedContent = Buffer.from(fileContent.content, 'base64').toString('utf-8');
-                            this.context.push(
+                            context.push(
                                 {
                                     role: 'user',
                                     content: `File Content of path: ${args['file_path']}\n\`\`\`${decodedContent}\`\`\``,
@@ -161,7 +161,7 @@ Use function calls to get the required information.
                         const loomUrl = args['loom_video_url'];
                         const transcript = await this.apifyClientService.fetchLoomTranscript(loomUrl);
 
-                        this.context.push(
+                        context.push(
                             {
                                 role: 'user',
                                 content: `This is the video transcript:\n\`\`\`${transcript}\`\`\``,
