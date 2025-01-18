@@ -4,6 +4,7 @@ import { GithubModule } from './github/github.module';
 import {ConfigModule} from "@nestjs/config";
 import {AgentClientModule} from "./agent-client/agent-client.module";
 import {ApifyClientModule} from "./apify-client/apify-client.module";
+import {LlmAgentClientModule} from "./llm-agent/agent-client.module";
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import {ApifyClientModule} from "./apify-client/apify-client.module";
     GithubModule,
     AgentClientModule,
     ApifyClientModule,
+    LlmAgentClientModule,
   ],
   controllers: [],
   providers: [],

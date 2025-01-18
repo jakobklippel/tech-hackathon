@@ -12,6 +12,18 @@ export class GithubService {
         private configService: ConfigService
     ) {}
 
+    extractOwnerAndProject(url: string): { owner: string; repo: string } | null {
+        const regex = /^https:\/\/github\.com\/([^\/]+)\/([^\/]+)$/;
+        const match = url.match(regex);
+
+        if (match) {
+            const [, owner, repo] = match;
+            return { owner, repo };
+        }
+
+        return null;
+    }
+
     async getRepoContents(owner: string, repo: string, path = '') {
         const url = `${this.baseUrl}/repos/${owner}/${repo}/contents/${path}`;
         const token = this.configService.get<string>('GITHUB_TOKEN');
