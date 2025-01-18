@@ -1,9 +1,8 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { EmailClientModule } from './email-client/email-client.module';
 import { GithubModule } from './github/github.module';
 import {ConfigModule} from "@nestjs/config";
+import {AgentClientModule} from "./agent-client/agent-client.module";
 
 @Module({
   imports: [
@@ -11,9 +10,10 @@ import {ConfigModule} from "@nestjs/config";
       isGlobal: true, // Makes the configuration globally available
     }),
     EmailClientModule,
-    GithubModule
+    GithubModule,
+    AgentClientModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}

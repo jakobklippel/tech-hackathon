@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import * as Imap from 'imap-simple';
 import {ConfigService} from "@nestjs/config";
 
