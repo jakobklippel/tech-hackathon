@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ApifyClient } from 'apify-client';
-import {ConfigService} from "@nestjs/config";
+import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class ApifyClientService {
@@ -12,7 +12,7 @@ export class ApifyClientService {
         const token = this.configService.get<string>('APIFY_TOKEN');
 
         this.client = new ApifyClient({
-            token: token// 'apify_api_lhCX6JmyfzWIrZgbLAMax7yd1yCykT0luIma',
+            token: token
         });
     }
 

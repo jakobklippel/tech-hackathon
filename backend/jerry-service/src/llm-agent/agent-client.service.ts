@@ -1,55 +1,37 @@
 import { Injectable } from '@nestjs/common';
 import { OpenAI } from 'openai';
 import { ConfigService } from "@nestjs/config";
-import {GithubService} from "../github/github.service";
-import {ApifyClientService} from "../apify-client/apify-client.service";
-import {OnEvent} from "@nestjs/event-emitter";
+import { GithubService } from "../github/github.service";
+import { ApifyClientService } from "../apify-client/apify-client.service";
+import { OnEvent } from "@nestjs/event-emitter";
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class AgentClientService {
     private readonly client: OpenAI;
+    private readonly systemPrompt: string;
 
     constructor(
         private readonly configService: ConfigService,
         private readonly githubService: GithubService,
         private readonly apifyClientService: ApifyClientService,
-
     ) {
-        const token = this.configService.get<string>('OPENAI_KEY');
+        const token = this.configService.get<string>('MISTRAL_KEY');
         this.client = new OpenAI({
-            // baseURL: 'https://api.mistral.ai/v1',
+            baseURL: 'https://api.mistral.ai/v1',
             apiKey: token,
         });
+
+        const promptPath = path.join(process.cwd(), "..", "..", 'agent-prompt.md');
+        this.systemPrompt = fs.readFileSync(promptPath, 'utf-8');
     }
-
-    // todo: fine tune the main prompt:
-    systemPrompt = `Your task is to:
-1. create a description of the stack used in the github repo
-2. create a short, concise summary of the loom video
-3. evaluate the project based on the stack used and the loom video summary. Be very dramatically positive with your evaluation.
-
-Respond using this markup template:
-\`\`\`
-# Review
-
-## Stack
-the description of the stack used in the project
-
-## Video summary
-the summary of the video
-
-## Evaluation
-the evaluation of the project
-\`\`\`
-
-Use function calls to get the required information.
-`;
 
     async generateText(emailContent: string): Promise<string> {
 
         const context: any[] = [];
 
-        let i=0;
+        let i = 0;
         while (true) {
             i++;
             if (i > 10) {
@@ -82,7 +64,7 @@ Use function calls to get the required information.
                             "required": ["github_url"],
                         },
                     },
-                },{
+                }, {
                     "type": "function",
                     "function": {
                         "name": "retrieve_github_file_content",
@@ -102,7 +84,7 @@ Use function calls to get the required information.
                             "required": ["github_url", "file_path"],
                         },
                     },
-                },{
+                }, {
                     "type": "function",
                     "function": {
                         "name": "retrieve_loom_video_transcript",
@@ -119,8 +101,8 @@ Use function calls to get the required information.
                         },
                     },
                 }],
-                // model: "mistral-tiny",
-                model: "gpt-4o",
+                model: "mistral-medium",
+                //model: "gpt-4o",
             });
 
 
@@ -134,7 +116,7 @@ Use function calls to get the required information.
                 console.log(functionName);
                 switch (functionName) {
                     case 'retrieve_github_repo_file_structure':
-                        const {owner, repo} = this.githubService.extractOwnerAndProject(args['github_url'])
+                        const { owner, repo } = this.githubService.extractOwnerAndProject(args['github_url'])
                         const githubStructure = await this.githubService.getRepoFileStructure(owner, repo);
 
                         context.push(
