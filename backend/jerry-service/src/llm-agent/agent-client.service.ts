@@ -103,7 +103,8 @@ export class AgentClientService {
                         },
                     },
                 }],
-                model: "mistral-medium",
+                model: "mistral-large-latest",
+                temperature: 0.1,
                 //model: "gpt-4o",
             });
 
