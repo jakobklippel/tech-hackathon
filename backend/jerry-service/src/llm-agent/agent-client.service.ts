@@ -3,6 +3,7 @@ import { OpenAI } from 'openai';
 import { ConfigService } from "@nestjs/config";
 import { GithubService } from "../github/github.service";
 import { ApifyClientService } from "../apify-client/apify-client.service";
+import { GotohumanService } from 'src/gotohuman/gotohuman.service';
 import { OnEvent } from "@nestjs/event-emitter";
 import * as fs from 'fs';
 import * as path from 'path';
@@ -15,6 +16,7 @@ export class AgentClientService {
     constructor(
         private readonly configService: ConfigService,
         private readonly githubService: GithubService,
+        private readonly gotohumanService: GotohumanService,
         private readonly apifyClientService: ApifyClientService,
     ) {
         const token = this.configService.get<string>('MISTRAL_KEY');
@@ -173,13 +175,11 @@ export class AgentClientService {
 
     @OnEvent('email.received')
     async handleUserCreatedEvent(event: { from: string; subject: string; body: string; }) {
+      const agentId = 'jerryAgent'
+        const randomRunId = this.generateRandomString();
+        await this.gotohumanService.announceRun(agentId, randomRunId, event.from);
+ 
         const result = await this.generateText(event.body);
-
-        let [firstPart] = event.from.split('<');
-        if (firstPart.indexOf('@') !== -1) {
-            [firstPart] = firstPart.split('@');
-        }
-        const name = `${firstPart.trim()}.${this.generateRandomString()}`
-        await this.githubService.pushFile(`${name}.md`, result, `add results from ${firstPart}`);
+        await this.gotohumanService.sendResult(agentId, randomRunId, event.from, result);
     }
 }

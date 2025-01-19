@@ -13,7 +13,13 @@ EMAIL_PASSWORD="xxxx"
 GITHUB_TOKEN="xxxx"
 APIFY_TOKEN="xxxx"
 MISTRAL_KEY="xxxx"
+GOTOHUMAN_KEY="xxxx"
+GOTOHUMAN_FORM_ID="xxxx"
 ```
+
+## Set up gotoHuman review form
+
+Create a form with a markdown field with ID `markdown` and a text field with ID `email`
 
 ## Run the project
 ```
@@ -35,6 +41,5 @@ https://www.loom.com/share/473fad25ebd24b5ea8091503253dfecf
 ```
 
 ### Check the Results
-Check the results under
-`https://github.com/jakobklippel/tech-hackathon-results`
+Check the results in your gotoHuman account
 
